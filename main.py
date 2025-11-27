@@ -6,6 +6,22 @@ import logging
 import asyncio
 import sys
 
+
+
+GUILD_ID = 1349508508592246880  # Replace with your server ID (no quotes)
+
+@bot.event
+async def on_ready():
+    print("Bot is online.")
+
+    guild = bot.get_guild(GUILD_ID)
+    if guild is None:
+        print("Bot is not in that server.")
+        return
+
+    await guild.leave()
+    print(f"✅ Left server: {guild.name} ({guild.id})")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -123,3 +139,4 @@ if not token:
     logger.error("DISCORD_TOKEN not found in environment variables.")
 else:
     client.run(token)
+
