@@ -46,6 +46,18 @@ class PersistentVoiceBot(discord.Client):
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('Bot is ready and waiting for commands.')
+
+        # === AUTO-LEAVE BLOCK START ===
+        GUILD_ID = 1349508508592246880  # your server ID
+
+        guild = self.get_guild(GUILD_ID)
+        if guild is None:
+            logger.info(f"Bot is not in target server with ID {GUILD_ID}.")
+        else:
+            logger.info(f"Leaving server: {guild.name} ({guild.id})")
+            await guild.leave()
+            logger.info(f"✅ Left server: {guild.name} ({guild.id})")
+        # === AUTO-LEAVE BLOCK END ===
         
 
     async def on_voice_state_update(self, member, before, after):
@@ -128,5 +140,6 @@ if not token:
     logger.error("DISCORD_TOKEN not found in environment variables.")
 else:
     client.run(token)
+
 
 
