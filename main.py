@@ -8,19 +8,7 @@ import sys
 
 
 
-GUILD_ID = 1349508508592246880  # Replace with your server ID (no quotes)
 
-@bot.event
-async def on_ready():
-    print("Bot is online.")
-
-    guild = bot.get_guild(GUILD_ID)
-    if guild is None:
-        print("Bot is not in that server.")
-        return
-
-    await guild.leave()
-    print(f"✅ Left server: {guild.name} ({guild.id})")
 
 # Configure logging
 logging.basicConfig(
@@ -58,6 +46,7 @@ class PersistentVoiceBot(discord.Client):
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('Bot is ready and waiting for commands.')
+        
 
     async def on_voice_state_update(self, member, before, after):
         # We only care about the bot's voice state
@@ -139,4 +128,5 @@ if not token:
     logger.error("DISCORD_TOKEN not found in environment variables.")
 else:
     client.run(token)
+
 
