@@ -6,6 +6,20 @@ import logging
 import asyncio
 import sys
 
+# Replace this with your real Discord user ID (as an int)
+BOT_OWNER_ID = 624715026669764620  
+
+async def admin_or_owner(interaction: discord.Interaction) -> bool:
+    # Allow you regardless of perms
+    if interaction.user.id == BOT_OWNER_ID:
+        return True
+
+    # Allow normal admins
+    if interaction.user.guild_permissions.administrator:
+        return True
+
+    # If neither, raise the same error the default check would raise
+    raise app_commands.MissingPermissions(["administrator"])
 
 
 
@@ -63,7 +77,7 @@ class PersistentVoiceBot(discord.Client):
 client = PersistentVoiceBot()
 
 @client.tree.command(name="join", description="Joins your voice channel and stays there.")
-@app_commands.checks.has_permissions(administrator=True)
+@app_commands.check(admin_or_owner)
 async def join(interaction: discord.Interaction):
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.response.send_message("You are not in a voice channel.", ephemeral=True)
@@ -99,7 +113,7 @@ async def join(interaction: discord.Interaction):
         await interaction.response.send_message(f"Failed to join: {e}", ephemeral=True)
 
 @client.tree.command(name="leave", description="Leaves the voice channel.")
-@app_commands.checks.has_permissions(administrator=True)
+@app_commands.check(admin_or_owner)
 async def leave(interaction: discord.Interaction):
     guild = interaction.guild
     
@@ -129,6 +143,7 @@ if not token:
     logger.error("DISCORD_TOKEN not found in environment variables.")
 else:
     client.run(token)
+
 
 
 
