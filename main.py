@@ -61,7 +61,18 @@ class PersistentVoiceBot(discord.Client):
             
             # Attempt to reconnect
             try:
-                logger.info(f"Attempting to reconnect to {before.channel.name} in {member.guild.name}...")
+                logger.info(f"Wait 5s before reconnecting to {before.channel.name} in {member.guild.name}...")
+                await asyncio.sleep(5)
+
+                # Cleanup potential stale voice client
+                if member.guild.voice_client:
+                    logger.info("Cleaning up stale voice client...")
+                    try:
+                        await member.guild.voice_client.disconnect(force=True)
+                    except Exception as e:
+                        logger.warning(f"Error disconnecting stale client: {e}")
+
+                logger.info(f"Connecting to {before.channel.name}...")
                 vc = await before.channel.connect()
                 
                 # Play silence to keep connection alive
