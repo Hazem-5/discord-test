@@ -6,6 +6,7 @@ import logging
 import asyncio
 import sys
 import signal
+import json
 
 # Configure logging
 logging.basicConfig(
@@ -36,6 +37,25 @@ class PersistentVoiceBot(discord.Client):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
         self.intentional_disconnects = set()
+        self.voice_state_file = "voice_state.json"
+        self.saved_voice_state = self.load_voice_state()
+
+    def load_voice_state(self):
+        if os.path.exists(self.voice_state_file):
+            try:
+                with open(self.voice_state_file, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to load voice state: {e}")
+                return {}
+        return {}
+
+    def save_voice_state(self):
+        try:
+            with open(self.voice_state_file, 'w') as f:
+                json.dump(self.saved_voice_state, f)
+        except Exception as e:
+            logger.error(f"Failed to save voice state: {e}")
 
     async def setup_hook(self):
         await self.tree.sync()
@@ -44,6 +64,26 @@ class PersistentVoiceBot(discord.Client):
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('Bot is ready and waiting for commands.')
+
+        # Restore voice connections
+        for guild_id_str, channel_id in self.saved_voice_state.items():
+            try:
+                guild_id = int(guild_id_str)
+                guild = self.get_guild(guild_id)
+                if guild:
+                    channel = guild.get_channel(channel_id)
+                    if channel:
+                        logger.info(f"Restoring connection to {channel.name} in {guild.name}...")
+                        vc = await channel.connect()
+                        if not vc.is_playing():
+                            vc.play(Silence())
+                            logger.info(f"Resumed playing silence in {guild.name}")
+                    else:
+                        logger.warning(f"Channel ID {channel_id} not found in guild {guild.name}")
+                else:
+                    logger.warning(f"Guild ID {guild_id} not found")
+            except Exception as e:
+                logger.error(f"Failed to restore connection for guild {guild_id_str}: {e}")
 
     async def on_voice_state_update(self, member, before, after):
         # We only care about the bot's voice state
@@ -118,6 +158,10 @@ async def join(interaction: discord.Interaction):
         await interaction.response.send_message(f"Joined {channel.mention} and staying forever!")
         logger.info(f"Successfully joined {channel.name} in {guild.name}")
 
+        # Save state
+        client.saved_voice_state[str(guild.id)] = channel.id
+        client.save_voice_state()
+
     except Exception as e:
         logger.error(f"Error joining voice in {guild.name}: {e}")
         await interaction.response.send_message(f"Failed to join: {e}", ephemeral=True)
@@ -137,6 +181,11 @@ async def leave(interaction: discord.Interaction):
         await interaction.guild.voice_client.disconnect()
         await interaction.response.send_message("Disconnected.")
         logger.info(f"Disconnected from {channel_name} in {guild.name} by command.")
+        
+        # Remove from saved state
+        if str(guild.id) in client.saved_voice_state:
+            del client.saved_voice_state[str(guild.id)]
+            client.save_voice_state()
     else:
         await interaction.response.send_message("I am not in a voice channel.", ephemeral=True)
 
