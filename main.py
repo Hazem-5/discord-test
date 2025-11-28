@@ -35,6 +35,7 @@ class PersistentVoiceBot(discord.Client):
         intents.voice_states = True
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
+        self.intentional_disconnects = set()
 
     async def setup_hook(self):
         await self.tree.sync()
@@ -51,9 +52,26 @@ class PersistentVoiceBot(discord.Client):
 
         # Check if disconnected
         if before.channel is not None and after.channel is None:
+            if member.guild.id in self.intentional_disconnects:
+                logger.info(f"Intentional disconnect from {member.guild.name}. Not reconnecting.")
+                self.intentional_disconnects.remove(member.guild.id)
+                return
+
             logger.warning(f"Bot was disconnected from voice channel in server: {member.guild.name} (ID: {member.guild.id})")
-            # Optional: Attempt to reconnect if it wasn't a manual leave? 
-            # For now, just log as requested.
+            
+            # Attempt to reconnect
+            try:
+                logger.info(f"Attempting to reconnect to {before.channel.name} in {member.guild.name}...")
+                vc = await before.channel.connect()
+                
+                # Play silence to keep connection alive
+                if not vc.is_playing():
+                    vc.play(Silence())
+                    logger.info(f"Resumed playing silence in {member.guild.name} after reconnect")
+                
+                logger.info(f"Successfully reconnected to {before.channel.name}")
+            except Exception as e:
+                logger.error(f"Failed to reconnect to {before.channel.name}: {e}")
 
 client = PersistentVoiceBot()
 
@@ -101,6 +119,9 @@ async def leave(interaction: discord.Interaction):
     logger.info(f"User {interaction.user} (ID: {interaction.user.id}) requested leave in server {guild.name} (ID: {guild.id})")
 
     if interaction.guild.voice_client:
+        # Mark as intentional disconnect
+        client.intentional_disconnects.add(guild.id)
+        
         channel_name = interaction.guild.voice_client.channel.name
         await interaction.guild.voice_client.disconnect()
         await interaction.response.send_message("Disconnected.")
