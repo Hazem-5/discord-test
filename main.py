@@ -5,24 +5,7 @@ import os
 import logging
 import asyncio
 import sys
-
-# Replace this with your real Discord user ID (as an int)
-BOT_OWNER_ID = 624715026669764620  
-
-async def admin_or_owner(interaction: discord.Interaction) -> bool:
-    # Allow you regardless of perms
-    if interaction.user.id == BOT_OWNER_ID:
-        return True
-
-    # Allow normal admins
-    if interaction.user.guild_permissions.administrator:
-        return True
-
-    # If neither, raise the same error the default check would raise
-    raise app_commands.MissingPermissions(["administrator"])
-
-
-
+import signal
 
 # Configure logging
 logging.basicConfig(
@@ -61,8 +44,6 @@ class PersistentVoiceBot(discord.Client):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('Bot is ready and waiting for commands.')
 
-        
-
     async def on_voice_state_update(self, member, before, after):
         # We only care about the bot's voice state
         if member.id != self.user.id:
@@ -77,7 +58,7 @@ class PersistentVoiceBot(discord.Client):
 client = PersistentVoiceBot()
 
 @client.tree.command(name="join", description="Joins your voice channel and stays there.")
-@app_commands.check(admin_or_owner)
+@app_commands.checks.has_permissions(administrator=True)
 async def join(interaction: discord.Interaction):
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.response.send_message("You are not in a voice channel.", ephemeral=True)
@@ -113,7 +94,7 @@ async def join(interaction: discord.Interaction):
         await interaction.response.send_message(f"Failed to join: {e}", ephemeral=True)
 
 @client.tree.command(name="leave", description="Leaves the voice channel.")
-@app_commands.check(admin_or_owner)
+@app_commands.checks.has_permissions(administrator=True)
 async def leave(interaction: discord.Interaction):
     guild = interaction.guild
     
@@ -137,14 +118,17 @@ async def error_handler(interaction: discord.Interaction, error):
         logger.error(f"Command error: {error}")
         await interaction.response.send_message(f"An error occurred: {error}", ephemeral=True)
 
+def signal_handler(signum, frame):
+    signame = signal.Signals(signum).name
+    logger.info(f"Received signal {signame}, shutting down...")
+
 # Run the bot
 token = os.getenv("DISCORD_TOKEN")
 if not token:
     logger.error("DISCORD_TOKEN not found in environment variables.")
 else:
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     client.run(token)
-
-
-
-
-
