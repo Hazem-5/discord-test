@@ -18,16 +18,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Silence generator class
-class Silence(discord.AudioSource):
+# Opus Silence generator class
+class OpusSilence(discord.AudioSource):
     def __init__(self):
-        self.bytes = b'\x00' * 3840 # 20ms of silence for 48kHz stereo
+        self.bytes = b'\xF8\xFF\xFE'
 
     def read(self):
         return self.bytes
 
     def is_opus(self):
-        return False
+        return True
 
 class PersistentVoiceBot(discord.Client):
     def __init__(self):
@@ -74,9 +74,9 @@ class PersistentVoiceBot(discord.Client):
                     channel = guild.get_channel(channel_id)
                     if channel:
                         logger.info(f"Restoring connection to {channel.name} in {guild.name}...")
-                        vc = await channel.connect()
+                        vc = await channel.connect(self_deaf=True)
                         if not vc.is_playing():
-                            vc.play(Silence())
+                            vc.play(OpusSilence())
                             logger.info(f"Resumed playing silence in {guild.name}")
                     else:
                         logger.warning(f"Channel ID {channel_id} not found in guild {guild.name}")
@@ -113,11 +113,11 @@ class PersistentVoiceBot(discord.Client):
                         logger.warning(f"Error disconnecting stale client: {e}")
 
                 logger.info(f"Connecting to {before.channel.name}...")
-                vc = await before.channel.connect()
+                vc = await before.channel.connect(self_deaf=True)
                 
                 # Play silence to keep connection alive
                 if not vc.is_playing():
-                    vc.play(Silence())
+                    vc.play(OpusSilence())
                     logger.info(f"Resumed playing silence in {member.guild.name} after reconnect")
                 
                 logger.info(f"Successfully reconnected to {before.channel.name}")
@@ -148,11 +148,11 @@ async def join(interaction: discord.Interaction):
                 await interaction.guild.voice_client.move_to(channel)
                 vc = interaction.guild.voice_client
         else:
-            vc = await channel.connect()
+            vc = await channel.connect(self_deaf=True)
 
         # Play silence to keep connection alive
         if not vc.is_playing():
-            vc.play(Silence())
+            vc.play(OpusSilence())
             logger.info(f"Started playing silence in {guild.name}")
 
         await interaction.response.send_message(f"Joined {channel.mention} and staying forever!")
