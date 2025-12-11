@@ -1,3 +1,0 @@
-[phases.setup]
-nixPkgs = ["ffmpeg", "libopus"]
-cmds = ["find /nix/store -name 'libopus.so.0' -print -quit | xargs -I {} cp {} ."]
