@@ -76,6 +76,12 @@ class VoiceController(commands.Cog):
             except Exception as e:
                 logger.error(f"Failed to play silence audio: {e}", exc_info=True)
                 await interaction.followup.send(f"⚠️ Joined {channel.mention}, but failed to start audio: {repr(e)}")
+                
+                # Send debug info to chat if available
+                if hasattr(self.bot, 'opus_debug_info'):
+                     # Truncate to avoid limit
+                     debug_preview = self.bot.opus_debug_info[-1500:] 
+                     await interaction.followup.send(f"**Debug Info:**\n```\n{debug_preview}\n```")
                 # We don't return here, we still try to start the loop often, or maybe we should?
                 # If play() fails, the loop might also fail, but let's try to start the loop anyway as a fallback.
 

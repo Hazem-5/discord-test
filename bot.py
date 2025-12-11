@@ -59,11 +59,12 @@ def main():
         return
 
     # Check and load Opus
-    logger.info("=== OPUS DEBUG START ===")
-    logger.info(f"OS: {os.name}, Platform: {platform.system()} {platform.release()} ({platform.machine()})")
+    debug_lines = []
+    debug_lines.append("=== OPUS DEBUG START ===")
+    debug_lines.append(f"OS: {os.name}, Platform: {platform.system()} {platform.release()} ({platform.machine()})")
     
     found_lib = ctypes.util.find_library('opus')
-    logger.info(f"ctypes.util.find_library('opus') -> {found_lib}")
+    debug_lines.append(f"ctypes.util.find_library('opus') -> {found_lib}")
     
     # Manual scan of common dirs
     search_paths = ['/usr/lib', '/usr/local/lib', '/lib', '/lib64', '/usr/lib64']
@@ -71,10 +72,12 @@ def main():
         try:
             matches = glob.glob(f"{path}/**/*opus*.so*", recursive=True)
             for m in matches:
-                logger.info(f"Found candidate: {m}")
+                debug_lines.append(f"Found candidate: {m}")
         except Exception as e:
-            logger.error(f"Error scanning {path}: {e}")
-    logger.info("=== OPUS DEBUG END ===")
+            debug_lines.append(f"Error scanning {path}: {e}")
+    debug_lines.append("=== OPUS DEBUG END ===")
+    debug_str = "\n".join(debug_lines)
+    logger.info(debug_str)
 
     if not discord.opus.is_loaded():
         try:
@@ -103,6 +106,7 @@ def main():
          logger.critical("Opus library is NOT loaded. Voice features will fail! Please download opus.dll.")
 
     bot = PersistentVoiceBot()
+    bot.opus_debug_info = debug_str
     try:
         bot.run(token, log_handler=None) # We use our own logger setup
     except Exception as e:
