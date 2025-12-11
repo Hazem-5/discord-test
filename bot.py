@@ -66,6 +66,16 @@ def main():
     found_lib = ctypes.util.find_library('opus')
     debug_lines.append(f"ctypes.util.find_library('opus') -> {found_lib}")
     
+    # STRATEGY B: Check local file first (copied via nixpacks.toml)
+    try:
+        if os.path.exists("./libopus.so.0"):
+            debug_lines.append("Found local ./libopus.so.0")
+            discord.opus.load_opus("./libopus.so.0")
+            logger.info("Successfully loaded local './libopus.so.0'")
+            debug_lines.append("Successfully loaded local './libopus.so.0'")
+    except Exception as e:
+        debug_lines.append(f"Failed to load local ./libopus.so.0: {e}")
+
     # Manual scan of common dirs including Nix store
     search_paths = ['/usr/lib', '/usr/local/lib', '/lib', '/lib64', '/usr/lib64', '/nix/store']
     for path in search_paths:
