@@ -46,7 +46,7 @@ class VoiceController(commands.Cog):
             except Exception as e:
                 logger.error(f"Error in connection watchdog: {e}")
             
-            await asyncio.sleep(30) # Check every 30 seconds
+            await asyncio.sleep(5) # Check every 5 seconds
 
     def is_allowed(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id in self._ALLOWED_USERS:
@@ -198,3 +198,4 @@ class VoiceController(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(VoiceController(bot))
+
