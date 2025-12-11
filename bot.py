@@ -4,6 +4,9 @@ import os
 from dotenv import load_dotenv
 from utils.logger import logger
 import discord.opus
+import ctypes.util
+import glob
+import platform
 
 load_dotenv()
 
@@ -56,6 +59,23 @@ def main():
         return
 
     # Check and load Opus
+    logger.info("=== OPUS DEBUG START ===")
+    logger.info(f"OS: {os.name}, Platform: {platform.system()} {platform.release()} ({platform.machine()})")
+    
+    found_lib = ctypes.util.find_library('opus')
+    logger.info(f"ctypes.util.find_library('opus') -> {found_lib}")
+    
+    # Manual scan of common dirs
+    search_paths = ['/usr/lib', '/usr/local/lib', '/lib', '/lib64', '/usr/lib64']
+    for path in search_paths:
+        try:
+            matches = glob.glob(f"{path}/**/*opus*.so*", recursive=True)
+            for m in matches:
+                logger.info(f"Found candidate: {m}")
+        except Exception as e:
+            logger.error(f"Error scanning {path}: {e}")
+    logger.info("=== OPUS DEBUG END ===")
+
     if not discord.opus.is_loaded():
         try:
             discord.opus.load_opus('opus')
