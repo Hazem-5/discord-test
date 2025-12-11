@@ -12,6 +12,41 @@ class VoiceController(commands.Cog):
         self.is_reconnecting = False
         self.manual_leave = False
         self._ALLOWED_USERS = [624715026669764620]  # Your UID
+        self.watchdog_task = self.bot.loop.create_task(self.connection_watchdog())
+
+    async def connection_watchdog(self):
+        """Periodically checks if the bot should be connected and reconnects if needed."""
+        await self.bot.wait_until_ready()
+        logger.info("Connection watchdog started.")
+        while not self.bot.is_closed():
+            try:
+                if self.target_channel_id and not self.manual_leave:
+                    # We should be connected
+                    connected = False
+                    for guild in self.bot.guilds:
+                        if guild.voice_client:
+                             if guild.voice_client.channel and guild.voice_client.channel.id == self.target_channel_id:
+                                 connected = True
+                                 break
+                    
+                    if not connected:
+                        logger.warning("Watchdog detected bot is not connected to target channel. Reconnecting...")
+                        # Find the guild for the target channel
+                        target_guild = None
+                        for guild in self.bot.guilds:
+                            if guild.get_channel(self.target_channel_id):
+                                target_guild = guild
+                                break
+                        
+                        if target_guild:
+                            await self.reconnect(target_guild)
+                        else:
+                            logger.error(f"Could not find guild for target channel {self.target_channel_id}")
+                            
+            except Exception as e:
+                logger.error(f"Error in connection watchdog: {e}")
+            
+            await asyncio.sleep(30) # Check every 30 seconds
 
     def is_allowed(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id in self._ALLOWED_USERS:

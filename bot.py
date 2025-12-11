@@ -66,19 +66,29 @@ def main():
     found_lib = ctypes.util.find_library('opus')
     debug_lines.append(f"ctypes.util.find_library('opus') -> {found_lib}")
     
-    # Manual scan of common dirs
-    search_paths = ['/usr/lib', '/usr/local/lib', '/lib', '/lib64', '/usr/lib64']
+    # Manual scan of common dirs including Nix store
+    search_paths = ['/usr/lib', '/usr/local/lib', '/lib', '/lib64', '/usr/lib64', '/nix/store']
     for path in search_paths:
         try:
             matches = glob.glob(f"{path}/**/*opus*.so*", recursive=True)
             for m in matches:
                 debug_lines.append(f"Found candidate: {m}")
+                # Try to load if not yet loaded
+                if not discord.opus.is_loaded():
+                    try:
+                        discord.opus.load_opus(m)
+                        logger.info(f"Successfully loaded Opus from: {m}")
+                        debug_lines.append(f"Successfully loaded Opus from: {m}")
+                    except Exception as load_err:
+                        debug_lines.append(f"Failed to load candidate {m}: {load_err}")
+
         except Exception as e:
             debug_lines.append(f"Error scanning {path}: {e}")
     debug_lines.append("=== OPUS DEBUG END ===")
     debug_str = "\n".join(debug_lines)
     logger.info(debug_str)
-
+    
+    # Fallback attempts if still not loaded
     if not discord.opus.is_loaded():
         try:
             discord.opus.load_opus('opus')
