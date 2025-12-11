@@ -59,13 +59,26 @@ class VoiceController(commands.Cog):
             else:
                 await channel.connect(self_deaf=True) # Self-deaf is often better for connection stability
 
+            # Verification step: Ensure we are actually connected
             vc = interaction.guild.voice_client
+            if not vc or not vc.is_connected():
+                raise Exception("Voice client is None or not connected after connect() call.")
+
             logger.info(f"Joined voice channel: {channel.name} ({channel.id}) in guild: {interaction.guild.name}")
             
             # Start keep-alive
-            vc.stop() # Stop anything currently playing
-            vc.play(Silence())
-            
+            try:
+                if vc.is_playing():
+                    vc.stop() # Stop anything currently playing
+                
+                vc.play(Silence())
+                logger.info("Started playing silence.")
+            except Exception as e:
+                logger.error(f"Failed to play silence audio: {e}", exc_info=True)
+                await interaction.followup.send(f"⚠️ Joined {channel.mention}, but failed to start audio: {e}")
+                # We don't return here, we still try to start the loop often, or maybe we should?
+                # If play() fails, the loop might also fail, but let's try to start the loop anyway as a fallback.
+
             # Also start a background task to monitor playing status
             self.bot.loop.create_task(self.keep_alive_loop(vc))
 
