@@ -182,7 +182,7 @@ class VoiceController(commands.Cog):
                         except: 
                             pass # Ignore cleanup errors
                     
-                    await asyncio.sleep(2 * i) # Wait before retry
+                    await asyncio.sleep(i) # Wait before retry (1s, 2s, 3s...)
                     await channel.connect(self_deaf=True)
                     vc = guild.voice_client
                     vc.play(Silence())
@@ -198,4 +198,3 @@ class VoiceController(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(VoiceController(bot))
-
