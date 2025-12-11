@@ -3,6 +3,7 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 from utils.logger import logger
+import discord.opus
 
 load_dotenv()
 
@@ -50,7 +51,27 @@ def main():
     token = os.getenv('DISCORD_TOKEN')
     if not token:
         logger.critical("DISCORD_TOKEN not found in environment variables.")
+    if not token:
+        logger.critical("DISCORD_TOKEN not found in environment variables.")
         return
+
+    # Check and load Opus
+    if not discord.opus.is_loaded():
+        try:
+            discord.opus.load_opus('opus')
+        except Exception as e:
+            logger.warning(f"Could not load 'opus' library: {e}")
+            logger.warning("Voice may not work. If on Windows, please ensure 'opus.dll' is in the bot directory or system PATH.")
+            # Try to help user by pointing to likely filename if on Windows
+            if os.name == 'nt':
+                try:
+                    discord.opus.load_opus('./opus.dll')
+                    logger.info("Successfully loaded './opus.dll'")
+                except:
+                    pass # We already logged the warning above
+
+    if not discord.opus.is_loaded():
+         logger.critical("Opus library is NOT loaded. Voice features will fail! Please download opus.dll.")
 
     bot = PersistentVoiceBot()
     try:
