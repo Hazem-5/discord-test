@@ -60,8 +60,17 @@ def main():
         try:
             discord.opus.load_opus('opus')
         except Exception as e:
-            logger.warning(f"Could not load 'opus' library: {e}")
-            logger.warning("Voice may not work. If on Windows, please ensure 'opus.dll' is in the bot directory or system PATH.")
+            logger.warning(f"Could not load 'opus': {e}")
+            
+            # IMPROVEMENT: Try common Linux filename specifically
+            try:
+                discord.opus.load_opus('libopus.so.0')
+                logger.info("Successfully loaded 'libopus.so.0'")
+            except Exception as e2:
+                logger.warning(f"Could not load 'libopus.so.0': {e2}")
+
+            logger.warning("Voice may not work. If on Windows, please ensure 'opus.dll' is in the bot directory.")
+            
             # Try to help user by pointing to likely filename if on Windows
             if os.name == 'nt':
                 try:
