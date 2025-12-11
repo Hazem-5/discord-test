@@ -75,7 +75,7 @@ class VoiceController(commands.Cog):
                 logger.info("Started playing silence.")
             except Exception as e:
                 logger.error(f"Failed to play silence audio: {e}", exc_info=True)
-                await interaction.followup.send(f"⚠️ Joined {channel.mention}, but failed to start audio: {e}")
+                await interaction.followup.send(f"⚠️ Joined {channel.mention}, but failed to start audio: {repr(e)}")
                 # We don't return here, we still try to start the loop often, or maybe we should?
                 # If play() fails, the loop might also fail, but let's try to start the loop anyway as a fallback.
 
